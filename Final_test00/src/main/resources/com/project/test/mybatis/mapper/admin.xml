@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?><!--  SQL 맵퍼 파일은 xml이기 때문에 제일 먼저 xml 선언이 옵니다. -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.project.test.mybatis.mapper.AdminMapper">
+	<select id="getTotaluser" resultType="int">
+		select count(*)
+		from user_info
+	</select>
+
+	<select id="getTotalschedule" resultType="int">
+		select count(*)
+		from GROUP_SCHEDULE
+	</select>
+	
+	<select id="getBestgroup" resultType="String">
+		select f.group_name from (select rownum, j.* 
+		from (select group_no, group_name,  cnt 
+			  from group_info gi join 
+			  					(select group_no as user_groupno, count(*) cnt
+								 from group_user_role
+								 group by group_no
+								 order by cnt desc)
+		on gi.group_no = user_groupno) j) f
+		where rownum=1
+	</select>
+	
+	<select id="getTotalgroup" resultType="int">
+		select count(*)
+		from GROUP_INFO
+	</select>
+	
+	<select id="getChartareadate" resultType="AdminChartAreaDate">
+		select to_char(joindate, 'yyyy-mm-dd') as "date"
+		from user_info 
+		WHERE joindate >= TO_CHAR(SYSDATE-7,'YYYY-MM-DD')
+		group by to_char(joindate, 'yyyy-mm-dd')
+	</select>
+	<select id="getChartareausers" resultType="AdminChartAreaUsers">
+		select count(*) cnt
+		from user_info 
+		WHERE joindate >= TO_CHAR(SYSDATE-7,'YYYY-MM-DD')
+		group by to_char(joindate, 'yyyy-mm-dd')
+	</select>
+	<select id="getPieChart" resultType="AdminChartCategory">
+		select catename, sum(cnt) as users from (select group_no, group_name, catename,  cnt 
+	  from group_info gi join 
+	  					(select group_no as user_groupno, count(*) cnt
+						 from group_user_role
+						 group by group_no
+						 order by cnt desc)
+						 on gi.group_no = user_groupno)	group by catename	
+	</select>
+	<select id="getSearchListCount" resultType="int">
+		select count(*) from user_info
+		where userid != 'admin'
+		<if test='search_field !=null'>
+		and 
+		<choose>
+			<when test="search_field=='userid'">userid</when>
+			<when test="search_field=='area_name'">area_name</when>
+			<when test="search_field=='gender'">gender</when>
+		</choose>
+		like #{search_word}
+		</if>
+	</select>
+	<select id="getSearchList" resultType="Member">
+		select *
+			from (select rownum rnum , b.*
+					from (select userid, gender, area_name, email,  to_char(joindate, 'yy-mm-dd') joindate 
+						  from user_info
+						  where userid != 'admin' 
+						  <include refid="search_"/>
+						  order by userid) b
+					where rownum &lt;= #{end}
+					)
+			where rnum &gt;= #{start} and rnum&lt;= #{end}
+	</select>
+	
+	<select id="getGroupSearchListCount" resultType="int">
+		select count(*) from (
+		 select ui.userid, gender, email, area_name,group_name,catename,cnt
+		from user_info ui
+		inner join (select group_no, group_name, userid,catename,  cnt 
+			  from group_info gi join 
+			  					(select group_no as user_groupno, count(*) cnt
+								 from group_user_role
+								 group by group_no
+								 order by cnt desc
+								 ,group_no asc)
+								 on gi.group_no = user_groupno) g
+		on ui.userid=g.userid
+		 ) 
+		 <if test='search_field !=null'>
+		where 
+		<choose>
+			<when test="search_field=='userid'">userid</when>
+			<when test="search_field=='group_name'">area_name</when>
+			<when test="search_field=='gender'">gender</when>
+		</choose>
+		like #{search_word}
+		</if>
+	</select>
+	
+	<select id="getGroupSearchList" resultType="Member">
+		 select *
+			from (select rownum rnum, b.*
+					from (select ui.userid, gender, email, area_name,group_name,catename,cnt
+		from user_info ui
+		inner join (select group_no, group_name, userid,catename,  cnt 
+	 	 from group_info gi join 
+	  					(select group_no as user_groupno, count(*) cnt
+						 from group_user_role
+						 group by group_no
+						 order by cnt desc
+						 ,group_no asc)
+						 on gi.group_no = user_groupno) g
+		on ui.userid=g.userid) b 
+					where rownum &lt;= #{end}
+					)
+					where rnum&gt;= #{start} and rnum&lt;= #{end}
+					<include refid="search_"/>
+	
+	</select>
+	
+	<sql id="search_">
+		<if test='search_field !=null'>
+				and 
+				<choose>
+					<when test="search_field=='userid'">userid</when>
+					<when test="search_field=='area_name'">area_name</when>
+					<when test="search_field=='gender'">gender</when>
+				</choose> 
+				like #{search_word}
+		</if> 
+	</sql>
+</mapper>
