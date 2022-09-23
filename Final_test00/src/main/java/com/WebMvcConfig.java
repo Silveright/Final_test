@@ -20,7 +20,7 @@ public class WebMvcConfig implements WebMvcConfigurer{
 		//url mapping "/"로 접속하면 group/list로 
 		registry.addViewController("/").setViewName("forward:/group/list");
 	}
-	
+	//test
   	@Override
 	  public void addResourceHandlers(ResourceHandlerRegistry registry) {
 	  registry.addResourceHandler("/resources/**")
